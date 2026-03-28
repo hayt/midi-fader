@@ -1,0 +1,16 @@
+BasedOnStyle: LLVM
+IndentWidth: 2
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: None
+AlwaysBreakTemplateDeclarations: Yes
+BreakConstructorInitializers: BeforeColon
+PackConstructorInitializers: Never
+AllowShortLambdasOnASingleLine: None
+BreakBeforeTernaryOperators: true
+AlignAfterOpenBracket: AlwaysBreak
+PenaltyBreakBeforeFirstCallParameter: 0
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false
+SortIncludes: Never
