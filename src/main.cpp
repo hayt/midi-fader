@@ -1,5 +1,7 @@
 #include <fmt/format.h>
 #include "core_pins.h"
+#include "fmt/core.h"
+#include "usb_serial.h"
 #include <Arduino.h>
 #include <array>
 #include <boost/optional.hpp>
@@ -34,6 +36,13 @@ auto digitalRead(Pins pin)
   return digitalRead(toInt(pin));
 }
 
+template <typename... Args>
+void printLn(fmt::format_string<Args...> fmtString, Args &&...args)
+{
+  const auto message = fmt::format(fmtString, args...);
+  Serial.println(message.c_str());
+}
+
 class Fader
 {
   Pins faderPin;
@@ -51,6 +60,14 @@ public:
     auto faderValue = analogRead(faderPin);
     return map(faderValue, 0, 1023, 0, 127);
   }
+
+  auto readTouch() const -> bool
+  {
+    constexpr static int touchThresold = 5;
+    const auto touch = analogRead(touchPin);
+    // printLn("touch value: {}", touch);
+    return touch < touchThresold;
+  }
 };
 
 constexpr auto midiChannelNum{1};
@@ -58,6 +75,7 @@ class MidiChannel
 {
   std::uint8_t CCNum{};
   boost::optional<std::uint8_t> lastValue;
+  bool touching{false};
 
 public:
   explicit MidiChannel(std::uint8_t CCNum)
@@ -79,9 +97,17 @@ public:
     if (shouldSkip)
       return;
 
-    Serial.println(fmt::format("Fader: {}", value).c_str());
+    printLn("Fader: {}", value);
     usbMIDI.sendControlChange(CCNum, value, midiChannelNum);
     lastValue = value;
+  }
+
+  void isTouching(bool touching)
+  {
+    if (touching == this->touching)
+      return;
+    this->touching = touching;
+    printLn("touching {}", this->touching);
   }
 };
 
@@ -94,7 +120,7 @@ class Application
 public:
   void setup()
   {
-    pinMode(toInt(Pins::Touch), INPUT_PULLUP);
+    // pinMode(toInt(Pins::Touch), INPUT_PULLDOWN);
     mappedMidi[0] = MidiChannel(7);
   }
 
@@ -106,12 +132,9 @@ public:
         continue;
       auto &midiChannel = mappedMidi[i].value();
       midiChannel.setVolume(faders[i].readVolume());
+      midiChannel.isTouching(faders[i].readTouch());
     }
 
-    const auto touch = digitalRead(Pins::Touch);
-    const bool touched = touch == LOW;
-    const auto message = fmt::format("touched: {}, {}", touched, touch);
-    Serial.println(message.c_str());
     usbMIDI.send_now();
     auto sleep = std::chrono::milliseconds(500);
     delay(sleep);
