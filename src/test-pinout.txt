@@ -1,0 +1,7 @@
+T -> brown -> 15 + 1MO res
+green fader -> 14
+
+STBY -> 12
+in1 -> 11
+IN2 -> 10
+PWM -> 9
